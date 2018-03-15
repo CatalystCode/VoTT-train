@@ -1,15 +1,15 @@
 import argparse
 import glob
 import os
-import pandas
 import re
-import requests
 import subprocess
 import sys
 import tarfile
 import threading
-import time
 import urllib
+
+import pandas
+
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description='RetinaNet VoTT-train plugin.')
@@ -18,14 +18,16 @@ def parse_args(args):
     parser.add_argument('--status', help='URL to training status callback.', default=None, type=str)
     parser.add_argument('--epochs', help='Number of epochs to train for.', default=1, type=int)
     parser.add_argument('--steps', help='Number of steps within each epoch.', default=10, type=int)
-    (known,unknown) = parser.parse_known_args(args)
+    (known, unknown) = parser.parse_known_args(args)
     return known
+
 
 args = parse_args(sys.argv[1:])
 
 print("annotations: %s" % args.annotations)
 print("model: %s" % args.model)
 print("status: %s" % args.status)
+
 
 def transform_url(url):
     path = os.path.join('files', os.path.basename(url))
@@ -34,6 +36,7 @@ def transform_url(url):
     print("Downloading %s from %s" % (path, url))
     urllib.request.urlretrieve(url, filename=path)
     return path
+
 
 # The pandas dataframes should have the following columns:
 # 0 url
@@ -55,6 +58,7 @@ classes_columns =  [5]
 annotations[classes_columns].drop_duplicates().sort_values(classes_columns).reset_index(drop=True).to_csv('classes.csv', header=None, index=True)
 pandas.read_csv('classes.csv', header=None, encoding="utf-8").iloc[:, ::-1].to_csv('classes.csv', header=None, index=False)
 
+
 class TrainStatus:
     def __init__(self):
         self.current_epoch = None
@@ -65,6 +69,7 @@ class TrainStatus:
         self.loss = None
         self.regression_loss = None
         self.classification_loss = None
+
     def get_progress(self):
         total_steps = int(self.total_epochs) * float(self.steps_per_epoch)
         if not total_steps:
@@ -72,12 +77,14 @@ class TrainStatus:
         completed_steps = (int(self.current_epoch)-1) * int(self.steps_per_epoch) + float(self.current_step)
         return completed_steps / total_steps
 
+
 class TrainStdoutReader(threading.Thread):
     def __init__(self, fd, train_status):
         assert callable(fd.readline)
         threading.Thread.__init__(self)
         self.fd = fd
         self.train_status = train_status
+
     def run(self):
         for linebytes in iter(self.fd.readline, ''):
             if not self.train_status:
@@ -109,6 +116,7 @@ class TrainStdoutReader(threading.Thread):
                 print("")
                 # TODO: Post status
 
+
 train_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'keras-retinanet/keras_retinanet/bin/train.py')
 train_process = subprocess.Popen([
     'python3',
@@ -134,7 +142,7 @@ if train_exit_code:
 
 model_tgz = 'model.tgz'
 with tarfile.open(model_tgz, 'w:gz') as tar:
-        # TODO: Only include the latest snapshot and name it something like model.h5
+        # TODO: Only include the latest snapshot and name it like model.h5
         snapshots = glob.glob('snapshots/*.h5')
         last_snapshot = sorted(snapshots)[-1]
         tar.add(last_snapshot, arcname='model.h5')

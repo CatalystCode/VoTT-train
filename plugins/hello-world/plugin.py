@@ -2,6 +2,7 @@ import argparse
 import sys
 import time
 
+
 def parse_args(args):
     parser = argparse.ArgumentParser(description='Hello World VoTT-train plugin.')
     parser.add_argument('--annotations', help='URL to annotations csv.', default=None, type=str)
